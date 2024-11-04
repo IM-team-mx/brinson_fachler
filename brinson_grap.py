@@ -3,7 +3,7 @@ import numpy as np
 import streamlit as st
 import datetime
 
-debug = True
+debug = False
 
 def load_data():
     classifications_file = './Input files/equities_classifications.csv'
