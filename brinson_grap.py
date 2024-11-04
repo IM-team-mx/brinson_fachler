@@ -11,8 +11,8 @@ def load_data():
         portfolios_file = './Input files/portfolios.csv'
         benchmarks_file ='./Input files/benchmarks.csv'
     else:
-        portfolios_file = col1.file_uploader("portfolios.csv file")
-        benchmarks_file = col2.file_uploader("benchmarks.csv file")
+        portfolios_file = col1.file_uploader("portfolios.csv file", help="File produced by the Performance service via PerfContribution.sh --action export")
+        benchmarks_file = col2.file_uploader("benchmarks.csv file", help="File produced by the Performance service via PerfContribution.sh --action export")
 
     return portfolios_file, benchmarks_file, classifications_file
 
