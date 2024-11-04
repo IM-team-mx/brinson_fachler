@@ -3,7 +3,7 @@ import numpy as np
 import streamlit as st
 import datetime
 
-debug = False
+debug = True
 
 def load_data():
     classifications_file = './Input files/equities_classifications.csv'
@@ -89,7 +89,7 @@ def brinson_fachler_analysis(prepared_data_df, classification):
     return bf_df
 
 
-def brinson_fachler_instrument(prepared_data_df):
+def brinson_fachler_instrument(prepared_data_df, classification_criteria, classification_value):
     bf_df = prepared_data_df
 
     # Calculate weights and returns
@@ -113,6 +113,12 @@ def brinson_fachler_instrument(prepared_data_df):
         else row['DeltaMv_portfolio'] / row['PreviousMv_portfolio'],
         axis=1
     )
+
+    # Filter the dataframe on the matching classification
+    bf_df = bf_df[
+        bf_df[classification_criteria] == classification_value
+    ]
+
     # Add Total Level weights columns
     bf_df['Total_Level_Weight_benchmark'] = bf_df.groupby('Start Date')['Weight_benchmark'].transform('sum')
     bf_df['Total_Level_Weight_portfolio'] = bf_df.groupby('Start Date')['Weight_portfolio'].transform('sum')
@@ -165,11 +171,11 @@ def grap_smoothing(attribution_df, total_returns_df, classification_criteria):
     if classification_criteria != "":
         attribution_df['Excess return'] = attribution_df['Allocation'] + attribution_df['Selection']
         grap_result_df = attribution_df.groupby(classification_criteria)[
-            ["Allocation", "Selection", "Excess return"]].sum().reset_index()
+            ["Excess return", "Allocation", "Selection"]].sum().reset_index()
     else:
-        attribution_df['Total'] = attribution_df['Allocation'] + attribution_df['Selection']
+        attribution_df['Allocation + Selection'] = attribution_df['Allocation'] + attribution_df['Selection']
         grap_result_df = attribution_df.groupby('Instrument')[
-            ["Allocation", "Selection", "Total"]].sum().reset_index()
+            ["Allocation", "Selection", "Allocation + Selection"]].sum().reset_index()
 
     # Summing the Smoothed Allocation and Smoothed Selection by Sector across dates
     grap_result_df.loc['Total'] = grap_result_df.sum()
@@ -186,19 +192,19 @@ st.set_page_config(
     page_icon=":bar_chart:",
     layout="wide"
 )
-st.markdown("#### :bar_chart: Brinson Fachler analysis")
+st.markdown("### :bar_chart: Brinson-Fachler performance attribution")
 
 col1, col2 = st.columns([0.5, 0.5])
 col3, col4 = st.columns([0.3, 0.7])
 col5, col6 = st.columns([0.3, 0.7])
-
-portfolios_file, benchmarks_file, classifications_file = load_data()
 
 reference_date = col1.date_input("Start date", datetime.date(2019, 12, 31))
 decimal_places = col2.selectbox(
         "Decimal places",
         (2, 4, 8, 12),
     )
+
+portfolios_file, benchmarks_file, classifications_file = load_data()
 
 if portfolios_file is not None and benchmarks_file is not None:
     classification_criteria = col3.radio(
@@ -225,24 +231,23 @@ if portfolios_file is not None and benchmarks_file is not None:
         'Selection': df_style.format,
         'Excess return': df_style.format
     })
-
+    col4.markdown("**Brinson-Fachler attribution**:", help="Allocation + Selection total value should match the Selection"
+                                                  " value in the main view")
     col4.dataframe(grap_result_display, hide_index=True, width=700, height=(len(grap_result.index) + 1) * 35 + 3)
 
     classification_values = grap_result[classification_criteria].to_list()
     classification_values = [item for item in classification_values if item not in ["Cash", "Total"]]
     classification_value = col5.radio(f"Select a {classification_criteria}:", classification_values)
 
-    # Filter data on the classification criteria and classification value selected
-    data = data[data[classification_criteria] == classification_value]
-
-    brinson_fachler_instrument_result = brinson_fachler_instrument(data)
+    brinson_fachler_instrument_result = brinson_fachler_instrument(data, classification_criteria, classification_value)
 
     grap_instrument_result = grap_smoothing(brinson_fachler_instrument_result, total_returns_df, "")
 
     grap_instrument_result_display = grap_instrument_result.style.format({
         'Allocation': df_style.format,
         'Selection': df_style.format,
-        'Total': df_style.format
+        'Allocation + Selection': df_style.format
     })
-
+    col6.markdown("**Instrument details**:", help="Allocation + Selection total value should match the Selection"
+                                                " value in the main view")
     col6.dataframe(grap_instrument_result_display, hide_index=True, width=700, height=(len(grap_instrument_result.index) + 1) * 35 + 3)
