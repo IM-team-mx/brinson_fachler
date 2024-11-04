@@ -3,14 +3,7 @@ import numpy as np
 import streamlit as st
 import datetime
 
-st.set_page_config(
-    page_title="Brinson Fachler analysis",
-    page_icon=":bar_chart:",
-    layout="wide"
-)
-
 debug = False
-
 
 def load_data():
     classifications_file = './Input files/equities_classifications.csv'
@@ -188,6 +181,11 @@ def grap_smoothing(attribution_df, total_returns_df, classification_criteria):
     return grap_result_df
 
 
+st.set_page_config(
+    page_title="Brinson Fachler analysis",
+    page_icon=":bar_chart:",
+    layout="wide"
+)
 st.markdown("#### :bar_chart: Brinson Fachler analysis")
 
 col1, col2 = st.columns([0.5, 0.5])
@@ -231,6 +229,7 @@ if portfolios_file is not None and benchmarks_file is not None:
     col4.dataframe(grap_result_display, hide_index=True, width=700, height=(len(grap_result.index) + 1) * 35 + 3)
 
     classification_values = grap_result[classification_criteria].to_list()
+    classification_values = [item for item in classification_values if item not in ["Cash", "Total"]]
     classification_value = col5.radio(f"Select a {classification_criteria}:", classification_values)
 
     # Filter data on the classification criteria and classification value selected
