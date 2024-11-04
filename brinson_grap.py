@@ -192,13 +192,13 @@ col1, col2 = st.columns([0.5, 0.5])
 col3, col4 = st.columns([0.3, 0.7])
 col5, col6 = st.columns([0.3, 0.7])
 
+portfolios_file, benchmarks_file, classifications_file = load_data()
+
 reference_date = col1.date_input("Start date", datetime.date(2019, 12, 31))
 decimal_places = col2.selectbox(
         "Decimal places",
         (2, 4, 8, 12),
     )
-
-portfolios_file, benchmarks_file, classifications_file = load_data()
 
 if portfolios_file is not None and benchmarks_file is not None:
     classification_criteria = col3.radio(
