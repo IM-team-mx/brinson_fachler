@@ -231,8 +231,7 @@ if portfolios_file is not None and benchmarks_file is not None:
         'Selection': df_style.format,
         'Excess return': df_style.format
     })
-    col4.markdown("**Brinson-Fachler attribution**:", help="Allocation + Selection total value should match the Selection"
-                                                  " value in the main view")
+    col4.markdown("**Brinson-Fachler attribution**:")
     col4.dataframe(grap_result_display, hide_index=True, width=700, height=(len(grap_result.index) + 1) * 35 + 3)
 
     classification_values = grap_result[classification_criteria].to_list()
