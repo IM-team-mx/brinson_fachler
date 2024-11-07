@@ -3,7 +3,7 @@ import numpy as np
 import streamlit as st
 import datetime
 
-debug = False
+debug = True
 
 def load_data():
     classifications_file = './Input files/equities_classifications.csv'
@@ -99,7 +99,56 @@ def brinson_fachler_instrument(prepared_data_df, classification_criteria, classi
     'PreviousMv_benchmark'].transform('sum')
 
     # Remove rows for which both the portfolio and benchmark weights are 0
-    bf_df = bf_df[(bf_df['Weight_portfolio'] != 0) | (bf_df['Weight_benchmark'] != 0)]
+    bf_df = bf_df[(bf_df['Weight_portfolio'] != 0) | (bf_df['Weight_benchmark'] != 0)] # to be changed
+
+    bf_df['Return_portfolio'] = bf_df.apply(
+        lambda row: row['DeltaMv_portfolio'] / row['PreviousMv_portfolio']
+        if row['Weight_portfolio'] != 0
+        else row['DeltaMv_benchmark'] / row['PreviousMv_benchmark'],
+        axis=1
+    )
+    bf_df['Return_benchmark'] = bf_df.apply(
+        lambda row: row['DeltaMv_benchmark'] / row['PreviousMv_benchmark']
+        if row['Weight_benchmark'] != 0
+        else row['DeltaMv_portfolio'] / row['PreviousMv_portfolio'],
+        axis=1
+    )
+
+    # Filter the dataframe on the matching classification
+    bf_df = bf_df[
+        bf_df[classification_criteria] == classification_value
+    ]
+
+    # Add Total Level weights columns
+    # bf_df['Total_Level_Weight_benchmark'] = bf_df.groupby('Start Date')['Weight_benchmark'].transform('sum')
+    # bf_df['Total_Level_Weight_portfolio'] = bf_df.groupby('Start Date')['Weight_portfolio'].transform('sum')
+
+    # Add Total Level benchmark return column
+    bf_df['Total_Level_Return_benchmark'] = bf_df.groupby('Start Date')['DeltaMv_benchmark'].transform('sum') / \
+                                         bf_df.groupby('Start Date')['PreviousMv_benchmark'].transform('sum')
+    # bf_df['Total_Level_Return_portfolio'] = bf_df.groupby('Start Date')['DeltaMv_portfolio'].transform('sum') / \
+    #                                      bf_df.groupby('Start Date')['PreviousMv_portfolio'].transform('sum')
+
+    # bf_df['Allocation Effect'] = (bf_df['Weight_portfolio'] - bf_df['Weight_benchmark'] * bf_df['Total_Level_Weight_portfolio'] /
+    #                            bf_df['Total_Level_Weight_benchmark']) * (
+    #                                   bf_df['Return_benchmark'] - bf_df['Total_Level_Return_benchmark'])
+
+    bf_df['Selection Effect'] = bf_df['Weight_portfolio'] * (bf_df['Return_portfolio'] - bf_df['Total_Level_Return_benchmark'])
+
+    return bf_df
+
+
+def brinson_fachler_level_two(prepared_data_df, classification_criteria, classification_value):
+    bf_df = prepared_data_df
+
+    # Calculate weights and returns
+    bf_df['Weight_portfolio'] = bf_df['PreviousMv_portfolio'] / bf_df.groupby('Start Date')[
+    'PreviousMv_portfolio'].transform('sum')
+    bf_df['Weight_benchmark'] = bf_df['PreviousMv_benchmark'] / bf_df.groupby('Start Date')[
+    'PreviousMv_benchmark'].transform('sum')
+
+    # Remove rows for which both the portfolio and benchmark weights are 0
+    bf_df = bf_df[(bf_df['Weight_portfolio'] != 0) | (bf_df['Weight_benchmark'] != 0)] # to be changed
 
     bf_df['Return_portfolio'] = bf_df.apply(
         lambda row: row['DeltaMv_portfolio'] / row['PreviousMv_portfolio']
@@ -166,16 +215,17 @@ def grap_smoothing(attribution_df, total_returns_df, classification_criteria):
     attribution_df = attribution_df.merge(total_returns_df[['Start Date', 'GRAP factor']], on='Start Date', how='left')
 
     # Calculating Smoothed Allocation and Smoothed Selection
-    attribution_df['Allocation'] = attribution_df['Allocation Effect'] * attribution_df['GRAP factor']
+
     attribution_df['Selection'] = attribution_df['Selection Effect'] * attribution_df['GRAP factor']
     if classification_criteria != "":
+        attribution_df['Allocation'] = attribution_df['Allocation Effect'] * attribution_df['GRAP factor']
         attribution_df['Excess return'] = attribution_df['Allocation'] + attribution_df['Selection']
         grap_result_df = attribution_df.groupby(classification_criteria)[
             ["Excess return", "Allocation", "Selection"]].sum().reset_index()
     else:
-        attribution_df['Allocation + Selection'] = attribution_df['Allocation'] + attribution_df['Selection']
+        # attribution_df['Allocation + Selection'] = attribution_df['Allocation'] + attribution_df['Selection']
         grap_result_df = attribution_df.groupby('Instrument')[
-            ["Allocation", "Selection", "Allocation + Selection"]].sum().reset_index()
+            ["Selection"]].sum().reset_index()
 
     # Summing the Smoothed Allocation and Smoothed Selection by Sector across dates
     grap_result_df.loc['Total'] = grap_result_df.sum()
@@ -239,13 +289,12 @@ if portfolios_file is not None and benchmarks_file is not None:
     classification_value = col5.radio(f"Select a {classification_criteria}:", classification_values)
 
     brinson_fachler_instrument_result = brinson_fachler_instrument(data, classification_criteria, classification_value)
-
     grap_instrument_result = grap_smoothing(brinson_fachler_instrument_result, total_returns_df, "")
 
     grap_instrument_result_display = grap_instrument_result.style.format({
-        'Allocation': df_style.format,
+        # 'Allocation': df_style.format,
         'Selection': df_style.format,
-        'Allocation + Selection': df_style.format
+        # 'Allocation + Selection': df_style.format
     })
     col6.markdown("**Instrument details**:", help="Allocation + Selection total value should match the Selection"
                                                 " value in the main view")
