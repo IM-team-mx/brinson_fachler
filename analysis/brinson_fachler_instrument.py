@@ -1,6 +1,3 @@
-import pandas
-
-
 def brinson_fachler_instrument(prepared_data_df, classif_criteria, classif_value):
     bf_df = prepared_data_df
 

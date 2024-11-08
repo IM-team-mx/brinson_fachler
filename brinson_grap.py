@@ -3,10 +3,10 @@ import datetime
 import pandas as pd
 from data.load_data import load_data
 from analysis.data_preparation import prepare_data
-from analysis.brinson_fachler import brinson_fachler_analysis
+from analysis.brinson_fachler import brinson_fachler
 from analysis.brinson_fachler_instrument import brinson_fachler_instrument
 from analysis.total_returns import total_returns
-from analysis.smoothing import grap_smoothing
+from analysis.grap_smoothing import grap_smoothing
 from utils.styling import highlight_total_row
 
 # Streamlit page configuration
@@ -44,7 +44,7 @@ if portfolios_file is not None and benchmarks_file is not None:
 
     # Prepare the data
     prepared_data = prepare_data(portfolio_df, benchmark_df, classifications_df, classification_criteria)
-    brinson_fachler_result = brinson_fachler_analysis(prepared_data, classification_criteria)
+    brinson_fachler_result = brinson_fachler(prepared_data, classification_criteria)
 
     # Calculate total returns and apply GRAP smoothing
     total_returns_df = total_returns(brinson_fachler_result, reference_date)
