@@ -18,7 +18,7 @@ st.set_page_config(
 )
 
 # Page title
-st.markdown('### :bar_chart: Equity performance attribution')
+st.markdown('### :bar_chart: Performance attribution')
 
 # Load data
 file_upload_container = st.container(border=True)
